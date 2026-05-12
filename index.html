@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Орбитальный командный центр</title>
+    <style>
+        body {
+            margin: 0;
+            background: radial-gradient(circle at center, #080b1a 0%, #010104 100%);
+            color: #ffffff;
+            font-family: 'Segoe UI', -apple-system, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        h1 {
+            font-size: 20px;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            color: #00ffcc;
+            text-shadow: 0 0 20px rgba(0, 255, 204, 0.4);
+            margin-bottom: 50px;
+            font-weight: 300;
+        }
+        /* Удобная сетка 3х2 */
+        .choice-container {
+            display: grid;
+            grid-template-columns: repeat(3, 300px);
+            gap: 30px;
+        }
+        .choice-card {
+            height: 180px;
+            background: rgba(0, 255, 204, 0.01);
+            border: 1px solid rgba(0, 255, 204, 0.12);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: #ffffff;
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.3, 1);
+        }
+        .choice-card:hover {
+            border-color: #00ffcc;
+            background: rgba(0, 255, 204, 0.04);
+            transform: translateY(-4px);
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.15);
+        }
+        .card-icon {
+            font-size: 36px;
+            margin-bottom: 12px;
+            transition: transform 0.4s;
+        }
+        .choice-card:hover .card-icon {
+            transform: scale(1.12);
+        }
+        .card-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: bold;
+            color: #94a3b8;
+            transition: color 0.3s;
+        }
+        .choice-card:hover .card-title {
+            color: #00ffcc;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>КОСМИЧЕСКИЙ ИНФОРМАЦИОННЫЙ ПОРТАЛ</h1>
+
+    <div class="choice-container">
+        <!-- Первый ряд -->
+        <a href="planets.html" class="choice-card">
+            <div class="card-icon">🪐</div>
+            <div class="card-title">Планеты системы</div>
+        </a>
+        <a href="stars.html" class="choice-card">
+            <div class="card-icon">⭐</div>
+            <div class="card-title">Атлас звезд</div>
+        </a>
+        <a href="moons.html" class="choice-card">
+            <div class="card-icon">🌙</div>
+            <div class="card-title">Спутники и Луны</div>
+        </a>
+
+        <!-- Второй ряд (наши новые модули) -->
+        <a href="galaxies.html" class="choice-card">
+            <div class="card-icon">🌀</div>
+            <div class="card-title">Галактики</div>
+        </a>
+        <a href="nebulae.html" class="choice-card">
+            <div class="card-icon">💨</div>
+            <div class="card-title">Туманности</div>
+        </a>
+        <a href="exoplanets.html" class="choice-card">
+            <div class="card-icon">💎</div>
+            <div class="card-title">Экзопланеты</div>
+        </a>
+    </div>
+
+</body>
+</html>

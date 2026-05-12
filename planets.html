@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exploring the Solar System</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: #010103;
+            color: #ffffff;
+            font-family: 'Segoe UI', -apple-system, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ДИНАМИЧЕСКИЙ ЖИВОЙ ФОН СО ЗВЕЗДАМИ */
+        .space-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #060919 0%, #010103 100%);
+            transition: filter 1.2s ease;
+            z-index: 1;
+            overflow: hidden;
+        }
+        /* Генерируем псевдоэлементом сетку мерцающих звезд */
+        .space-bg::before {
+            content: "";
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background-image: 
+                radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px),
+                radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px);
+            background-size: 550px 550px, 350px 350px;
+            background-position: 0 0, 40px 60px;
+            animation: backgroundMove 180s linear infinite;
+            opacity: 0.3;
+        }
+        @keyframes backgroundMove {
+            from { transform: translate(0, 0); }
+            to { transform: translate(-50%, -50%); }
+        }
+        body.planet-active .space-bg {
+            filter: blur(15px) brightness(0.3);
+        }
+
+        /* ЭФФЕКТ ПАДАЮЩЕЙ ЗВЕЗДЫ (МЕТЕОРА) */
+        .meteor {
+            position: absolute;
+            left: 100%;
+            top: -10%;
+            width: 100px;
+            height: 2px;
+            background: linear-gradient(-45deg, #00ffcc, rgba(0, 0, 0, 0));
+            filter: drop-shadow(0 0 6px #00ffcc);
+            animation: meteorShower 12s linear infinite;
+            z-index: 2;
+            opacity: 0;
+        }
+        @keyframes meteorShower {
+            0% { transform: translate(0, 0) rotate(-45deg); opacity: 0; }
+            10% { opacity: 1; }
+            20% { transform: translate(-1200px, 1200px) rotate(-45deg); opacity: 0; }
+            100% { transform: translate(-1200px, 1200px) rotate(-45deg); opacity: 0; }
+        }
+
+        /* ГЛАВНОЕ МЕНЮ */
+        .menu-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: transform 1.5s cubic-bezier(0.25, 1, 0.3, 1), opacity 1.2s ease;
+            padding: 0 40px;
+        }
+        .menu-screen.hidden {
+            opacity: 0;
+            transform: scale(2.8);
+            pointer-events: none;
+        }
+        .menu-title {
+            font-size: 13px;
+            letter-spacing: 7px;
+            margin-bottom: 60px;
+            text-transform: uppercase;
+            color: #00ffcc;
+            text-shadow: 0 0 20px rgba(0, 255, 204, 0.4);
+            font-weight: 300;
+        }
+        .planets-row {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+        }
+        .menu-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            width: 150px;
+        }
+        .menu-orbit {
+            width: 155px !important;
+            height: 155px !important;
+            border: 1px dashed rgba(0, 255, 204, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color 0.4s, transform 0.6s ease;
+        }
+        .menu-circle {
+            width: 110px !important;
+            height: 110px !important;
+            border-radius: 50%;
+            background-size: 200% 100%;
+            box-shadow: inset -12px -12px 20px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.6);
+            transition: transform 0.4s cubic-bezier(0.25, 1, 0.3, 1);
+        }
+        .btn-sun { background-image: url('sun.jfif'); box-shadow: inset -5px -5px 15px rgba(0,0,0,0.2), 0 0 25px #ff5500; }
+        .btn-mercury { background-image: url('mercury.jfif'); }
+        .btn-venus { background-image: url('venus.jpg'); }
+        .btn-earth { background-image: url('earth.jfif'); box-shadow: inset -12px -12px 20px rgba(0,0,0,0.95), 0 0 15px rgba(0,100,255,0.4); }
+        .btn-mars { background-image: url('mars.jpg'); }
+
+        .menu-item:hover .menu-orbit { border-color: #00ffcc; transform: rotate(45deg); }
+        .menu-item:hover .menu-circle { transform: scale(1.15); }
+        .menu-name { margin-top: 15px; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #475569; transition: color 0.3s; font-weight: bold; text-align: center; }
+        .menu-item:hover .menu-name { color: #00ffcc; text-shadow: 0 0 10px rgba(0,255,204,0.4); }
+
+        /* ЭКРАН ПРОСМОТРА */
+        .view-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s ease-in-out;
+            z-index: 5;
+        }
+        .view-screen.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .back-btn {
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 3px;
+            cursor: pointer;
+            transition: color 0.3s, transform 0.2s;
+            z-index: 20;
+        }
+        .back-btn:hover { color: #00ffcc; }
+
+        .planet-showcase {
+            position: absolute;
+            width: 530px;
+            height: 530px;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) scale(0.15);
+            transition: left 1.6s cubic-bezier(0.25, 1, 0.3, 1), transform 1.6s cubic-bezier(0.25, 1, 0.3, 1);
+            border-radius: 50%;
+        }
+        .view-screen.active .planet-showcase {
+            left: 33%;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        .main-sphere {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-size: 200% 100%;
+            box-shadow: inset -80px -80px 140px rgba(0,0,0,0.98), inset 20px 20px 60px rgba(255,255,255,0.03);
+            animation: spinPlanet 50s linear infinite;
+        }
+        @keyframes spinPlanet {
+            from { background-position: 0% 0%; }
+            to { background-position: -200% 0%; }
+        }
+        .info-panel {
+            position: absolute;
+            right: 5% !important;
+            top: 15% !important;
+            max-width: 440px !important;
+            height: 70vh !important;
+            overflow-y: auto !important;
+            padding-right: 15px !important;
+            opacity: 0;
+            transform: translateX(70px);
+            transition: opacity 1s cubic-bezier(0.25, 1, 0.3, 1) 0.6s, transform 1s cubic-bezier(0.25, 1, 0.3, 1) 0.6s;
+            z-index: 99 !important;
+            background: transparent !important;
+        }
+        .view-screen.active .info-panel {
+            opacity: 1 !important;
+            transform: translateX(0) !important;
+        }
+        .info-panel::-webkit-scrollbar { width: 4px; }
+        .info-panel::-webkit-scrollbar-thumb { background: rgba(0, 255, 204, 0.3); border-radius: 2px; }
+        
+        .sys-online { color: #00ffcc; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 8px; }
+        .info-panel h1 { font-size: 34px; letter-spacing: 2px; text-transform: uppercase; margin: 0 0 20px 0; font-weight: 600; color: #ffffff !important; }
+        .info-panel p { color: #94a3b8 !important; line-height: 1.7; font-size: 15px; margin-bottom: 35px; font-weight: 300; }
+        
+        .stat-box { border-left: 3px solid #ff6600; padding-left: 15px; margin: 22px 0; background: linear-gradient(90deg, rgba(255, 102, 0, 0.03), transparent); }
+        .stat-label { font-size: 10px; text-transform: uppercase; color: #475569; letter-spacing: 1.5px; margin-bottom: 3px; }
+        .stat-value { font-size: 20px; font-weight: bold; color: #ffffff !important; }
+    </style>
+</head>
+<body>
+
+    <!-- Задний план космоса и летящий метеор -->
+    <div class="space-bg">
+        <div class="meteor"></div>
+    </div>
+
+    <!-- ЭКРАН 1: ГЛАВНОЕ МЕНЮ -->
+    <div class="menu-screen" id="menuScreen">
+        <div class="menu-title">ВЫБОР ОБЪЕКТА СИСТЕМЫ</div>
+        <div class="planets-row">
+            <div class="menu-item" onclick="openPlanet('sun')">
+                <div class="menu-orbit"><div class="menu-circle btn-sun"></div></div>
+                <div class="menu-name">Солнце</div>
+            </div>
+            <div class="menu-item" onclick="openPlanet('mercury')">
+                <div class="menu-orbit"><div class="menu-circle btn-mercury"></div></div>
+                <div class="menu-name">Меркурий</div>
+            </div>
+            <div class="menu-item" onclick="openPlanet('venus')">
+                <div class="menu-orbit"><div class="menu-circle btn-venus"></div></div>
+                <div class="menu-name">Венера</div>
+            </div>
+            <div class="menu-item" onclick="openPlanet('earth')">
+                <div class="menu-orbit"><div class="menu-circle btn-earth"></div></div>
+                <div class="menu-name">Земля</div>
+            </div>
+            <div class="menu-item" onclick="openPlanet('mars')">
+                <div class="menu-orbit"><div class="menu-circle btn-mars"></div></div>
+                <div class="menu-name">Марс</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ЭКРАН 2: ПРОСМОТР ОБЪЕКТА -->
+    <div class="view-screen" id="viewScreen">
+        <div class="back-btn" onclick="closePlanet()" style="position: absolute; top: 40px; left: 40px;">◀ К СПИСКУ ПЛАНЕТ</div>
+        <div class="back-btn" onclick="window.location.href='index.html'" style="position: absolute; top: 40px; left: 210px; color: #00ffcc;">❖ В ГЛАВНОЕ МЕНЮ</div>
+        
+        <div class="planet-showcase">
+            <div class="main-sphere" id="planetSphere"></div>
+        </div>
+
+        <div class="info-panel">
+            <div class="sys-online">SYSTEM ONLINE</div>
+            <h1 id="pName">НАЗВАНИЕ</h1>
+            <p id="pDesc">Описание.</p>
+            
+            <div class="stat-box">
+                <div class="stat-label">Тип объекта</div>
+                <div class="stat-value" id="pType">-</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Температура на поверхности</div>
+                <!-- Добавлен контейнер для эффекта бегущих цифр -->
+                <div class="stat-value" id="pTemp">0</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const data = {
+            sun: {
+                name: "Центральная звезда — Солнце",
+                desc: "Солнце — это полноценное сердце и единственный источник энергии нашей системы, в котором сосредоточено 99.86% всей её массы. Оно представляет собой колоссальный плазменный шар, находящийся в состоянии гидростатического равновесия. В самом ядре Солнца под действием чудовищного давления и температуры в 15 миллионов градусов непрерывно протекают термоядерные реакции. Возраст нашей звезды составляет около 4.57 миллиардов лет.",
+                type: "Желтый карлик (спектральный класс G2V)",
+                temp: 5500, // Числовое значение для счетчика
+                suffix: " °C"
+            },
+            mercury: {
+                name: "Меркурий — Железная планета",
+                desc: "Меркурий — самая близкая к Солнцу и самая маленькая планета Солнечной системы. Ученые установили, что планета обладает непропорционально огромным жидким железным ядром, которое занимает около 83% от всего объема планеты. Поверхность Меркурия визуально очень похожа на лунную: она усеяна тысячами метеоритных кратеров и огромными уступами.",
+                type: "Планета земной группы (самая маленькая)",
+                temp: 430,
+                suffix: " °C (днем)"
+            },
+            venus: {
+                name: "Венера — Углекислый ад",
+                desc: "Венера — вторая планета от Солнца и самый яркий объект на ночном небе после Луны. Атмосфера Венеры — это плотный, тяжелый океан, состоящий на 96.5% из углекислого газа, а давление у поверхности составляет рекордные 92 атмосферы. Углекислый газ удерживает солнечное тепло у поверхности, создавая неуправляемый парниковый эффект.",
+                type: "Планета земной группы (с экстремальным давлением)",
+                temp: 465,
+                suffix: " °C"
+            },
+            earth: {
+                name: "Земля — Живой оазис",
+                desc: "Земля — третья планета от Солнца, крупнейшая среди планет земной группы и единственное известное науке космическое тело, на котором существует разумная жизнь. Около 70.8% поверхности планеты покрыто Мировым океаном. Атмосфера Земли уникальна: она состоит преимущественно из азота (78%) и кислорода (21%).",
+                type: "Планета земной группы (единственная обитаемая)",
+                temp: 15,
+                suffix: " °C (средняя глобальная)"
+            },
+            mars: {
+                name: "Марс — Ржавая пустыня",
+                desc: "Марс — четвертая планета от Солнца, активно изучаемая человечеством как потенциальный плацдарм для будущей колонизации. Свой характерный кроваво-красный цвет планета получила благодаря высокой концентрации оксидов железа в грунте и пыли. На Марсе расположены самые грандиозные геологические структуры Солнечной системы, включая вулкан Олимп.",
+                type: "Планета земной группы (цель будущих экспедиций)",
+                temp: -62,
+                suffix: " °C (средняя)"
+            }
+        };
+
+        // ФУНКЦИЯ ДЛЯ ЭФФЕКТА БЕГУЩИХ ЦИФР
+        function animateCounter(elementId, targetValue, suffix) {
+            const el = document.getElementById(elementId);
+            let startValue = 0;
+            // Если температура отрицательная, идем вниз, если положительная — вверх
+            const step = targetValue > 0 ? Math.ceil(targetValue / 40) : Math.floor(targetValue / 40);
+            
+            clearInterval(el.counterInterval);
+            
+            el.counterInterval = setInterval(() => {
+                startValue += step;
+                
+                // Проверяем условия остановки счетчика
+                if ((step > 0 && startValue >= targetValue) || (step < 0 && startValue <= targetValue) || step === 0) {
+                    clearInterval(el.counterInterval);
+                    el.innerText = targetValue.toLocaleString('ru-RU') + suffix;
+                } else {
+                    el.innerText = startValue.toLocaleString('ru-RU') + suffix;
+                }
+            }, 25); // Скорость обновления цифр (мс)
+        }
+
+        function openPlanet(id) {
+            const sphere = document.getElementById('planetSphere');
+            if (!data[id]) return;
+            
+            // Настраиваем фон-текстуру
+            sphere.style.backgroundImage = `url('${id === 'sun' ? 'sun.jfif' : id === 'venus' ? 'venus.jpg' : id === 'mars' ? 'mars.jpg' : id + '.jfif'}')`;
+            
+            document.getElementById('pName').innerHTML = data[id].name;
+            document.getElementById('pDesc').innerHTML = data[id].desc;
+            document.getElementById('pType').innerText = data[id].type;
+
+            // Запускаем анимированный sci-fi отсчет температуры
+            animateCounter('pTemp', data[id].temp, data[id].suffix);
+
+            document.body.classList.add('planet-active');
+            document.getElementById('menuScreen').classList.add('hidden');
+            document.getElementById('viewScreen').classList.add('active');
+        }
+
+        function closePlanet() {
+            document.body.classList.remove('planet-active');
+            document.getElementById('menuScreen').classList.remove('hidden');
+            document.getElementById('viewScreen').classList.remove('active');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Атлас Галактик</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #020205; color: #ffffff; font-family: 'Segoe UI', sans-serif; height: 100vh; overflow: hidden; position: relative; }
+        .space-bg { position: absolute; width: 100%; height: 100%; background: radial-gradient(circle at center, #0c071a 0%, #010103 100%); transition: filter 1.2s ease; z-index: 1; }
+        body.planet-active .space-bg { filter: blur(15px) brightness(0.3); }
+        .menu-screen { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; transition: transform 1.5s cubic-bezier(0.25, 1, 0.3, 1), opacity 1.2s ease; }
+        .menu-screen.hidden { opacity: 0; transform: scale(2.8); pointer-events: none; }
+        .menu-title { font-size: 13px; letter-spacing: 7px; margin-bottom: 60px; text-transform: uppercase; color: #00ffcc; text-shadow: 0 0 20px rgba(0, 255, 204, 0.4); }
+        .planets-row { display: flex; gap: 30px; justify-content: center; }
+        .menu-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; width: 150px; }
+        .menu-orbit { width: 155px !important; height: 155px !important; border: 1px dashed rgba(0, 255, 204, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.6s; }
+        .menu-circle { width: 110px !important; height: 110px !important; border-radius: 50%; background-size: 200% 100%; box-shadow: inset -12px -12px 20px rgba(0,0,0,0.95); }
+        
+        .btn-milky { background-image: url('milkyway.jfif'); box-shadow: 0 0 25px rgba(0,255,204,0.4); }
+        .btn-andromeda { background-image: url('venus.jpg'); filter: hue-rotate(180deg) saturate(2); box-shadow: 0 0 20px rgba(0,100,255,0.3); }
+        
+        .menu-item:hover .menu-orbit { border-color: #00ffcc; transform: rotate(45deg); }
+        .menu-item:hover .menu-circle { transform: scale(1.15); }
+        .menu-name { margin-top: 15px; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #475569; font-weight: bold; }
+        .menu-item:hover .menu-name { color: #00ffcc; }
+        .view-screen { position: absolute; width: 100%; height: 100%; opacity: 0; pointer-events: none; transition: opacity 0.8s ease-in-out; z-index: 5; }
+        .view-screen.active { opacity: 1; pointer-events: auto; }
+        .back-btn { text-transform: uppercase; font-size: 11px; letter-spacing: 3px; cursor: pointer; transition: color 0.3s; }
+        .back-btn:hover { color: #00ffcc; }
+        .planet-showcase { position: absolute; width: 530px; height: 530px; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.15); transition: all 1.6s cubic-bezier(0.25, 1, 0.3, 1); border-radius: 50%; }
+        .view-screen.active .planet-showcase { left: 33%; transform: translate(-50%, -50%) scale(1); }
+        .main-sphere { width: 100%; height: 100%; border-radius: 50%; background-size: 200% 100%; box-shadow: inset -80px -80px 140px rgba(0,0,0,0.98); animation: spinPlanet 60s linear infinite; }
+        @keyframes spinPlanet { from { background-position: 0% 0%; } to { background-position: -200% 0%; } }
+        .info-panel { position: absolute; right: 5% !important; top: 15% !important; max-width: 440px !important; height: 70vh !important; overflow-y: auto !important; padding-right: 15px !important; opacity: 0; transform: translateX(70px); transition: all 1s cubic-bezier(0.25, 1, 0.3, 1) 0.6s; z-index: 99 !important; background: transparent !important; }
+        .view-screen.active .info-panel { opacity: 1 !important; transform: translateX(0) !important; }
+        .info-panel::-webkit-scrollbar { width: 4px; }
+        .info-panel::-webkit-scrollbar-thumb { background: rgba(0, 255, 204, 0.3); border-radius: 2px; }
+        .sys-online { color: #00ffcc; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 8px; }
+        .info-panel h1 { font-size: 32px; letter-spacing: 1px; text-transform: uppercase; margin: 0 0 20px 0; font-weight: 600; color: #ffffff !important; }
+        .info-panel p { color: #94a3b8 !important; line-height: 1.7; font-size: 15px; margin-bottom: 35px; font-weight: 300; }
+        .stat-box { border-left: 3px solid #00ffcc; padding-left: 15px; margin: 22px 0; background: linear-gradient(90deg, rgba(0, 255, 204, 0.02), transparent); }
+        .stat-label { font-size: 10px; text-transform: uppercase; color: #475569; letter-spacing: 1.5px; margin-bottom: 3px; }
+        .stat-value { font-size: 20px; font-weight: bold; color: #ffffff !important; }
+    </style>
+</head>
+<body>
+    <div class="space-bg"></div>
+    <div class="menu-screen" id="menuScreen">
+        <div class="menu-title">КАТАЛОГ ГАЛАКТИЧЕСКИХ СТРУКТУР</div>
+        <div class="planets-row">
+            <div class="menu-item" onclick="openPlanet('milkyway')">
+                <div class="menu-orbit"><div class="menu-circle btn-milky"></div></div>
+                <div class="menu-name">Млечный Путь</div>
+            </div>
+            <div class="menu-item" onclick="openPlanet('andromeda')">
+                <div class="menu-orbit"><div class="menu-circle btn-andromeda"></div></div>
+                <div class="menu-name">Андромеда</div>
+            </div>
+        </div>
+    </div>
+    <div class="view-screen" id="viewScreen">
+        <div class="back-btn" onclick="closePlanet()" style="position: absolute; top: 40px; left: 40px;">◀ К СПИСКУ ГАЛАКТИК</div>
+        <div class="back-btn" onclick="window.location.href='index.html'" style="position: absolute; top: 40px; left: 210px; color: #00ffcc;">❖ В ГЛАВНОЕ МЕНЮ</div>
+        <div class="planet-showcase"><div class="main-sphere" id="planetSphere"></div></div>
+        <div class="info-panel">
+            <div class="sys-online">GALACTIC RADAR ONLINE</div>
+            <h1 id="pName">-</h1><p id="pDesc">-</p>
+            <div class="stat-box"><div class="stat-label">Морфологический тип</div><div class="stat-value" id="pType">-</div></div>
+            <div class="stat-box"><div class="stat-label">Диаметр / Масса</div><div class="stat-value" id="pSize">-</div></div>
+        </div>
+    </div>
+    <script>
+        const data = {
+            milkyway: {
+                name: "Млечный Путь — Наша Галактика",
+                desc: "Млечный Путь — гигантская спиральная галактика с перемычкой, в которой находится наша Солнечная система. Она содержит от 100 до 400 миллиардов звезд, а также колоссальные объемы газа и пыли. Все объекты вращаются вокруг общего центра — сверхмассивной черной дыры Стрелец А*. Наша система расположена на внутреннем краю рукава Ориона и совершает полный галактический оборот примерно за 230 миллионов лет.",
+                type: "Спиральная галактика с перемычкой (SBbc)",
+                size: "~ 100 000 световых лет / 1.5 трлн масс Солнца",
+                img: "milkyway.jfif", filter: "none"
+            },
+            andromeda: {
+                name: "Галактика Андромеды (M31)",
+                desc: "Андромеда — ближайшая к нам крупная спиральная галактика и самый массивный член Местной группы. Она содержит около 1 триллиона звезд, что примерно в 2-5 раз больше, чем в Млечном Пути. Андромеда приближается к нашей галактике со скоростью около 110 км/с. Примерно через 4.5 миллиарда лет произойдет неизбежное столкновение, в результате которого две структуры сольются в одну эллиптическую галактику.",
+                type: "Спиральная галактика (SA(s)b)",
+                size: "~ 220 000 световых лет / ~ 1 трлн масс Солнца",
+                img: "venus.jpg", filter: "hue-rotate(180deg) saturate(2)"
+            }
+        };
+        function openPlanet(id) {
+            const sphere = document.getElementById('planetSphere');
+            if (!data[id]) return;
+            sphere.style.backgroundImage = `url('${data[id].img}')`;
+            sphere.style.filter = data[id].filter || 'none';
+            document.getElementById('pName').innerHTML = data[id].name;
+            document.getElementById('pDesc').innerHTML = data[id].desc;
+            document.getElementById('pType').innerText = data[id].type;
+            document.getElementById('pSize').innerText = data[id].size;
+            document.body.classList.add('planet-active');
+            document.getElementById('menuScreen').classList.add('hidden');
+            document.getElementById('viewScreen').classList.add('active');
+        }
+        function closePlanet() { document.body.classList.remove('planet-active'); document.getElementById('menuScreen').classList.remove('hidden'); document.getElementById('viewScreen').classList.remove('active'); }
+    </script>
+</body>
+</html>

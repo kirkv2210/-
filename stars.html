@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Атлас звезд и космических объектов</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: #020205;
+            color: #ffffff;
+            font-family: 'Segoe UI', -apple-system, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* КОСМИЧЕСКИЙ ФОН С ЭФФЕКТОМ ГРАВИТАЦИОННОГО ЛИНЗИРОВАНИЯ */
+        .space-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #0f071c 0%, #020104 100%);
+            transition: filter 1.2s ease, transform 1.6s ease;
+            z-index: 1;
+        }
+        .space-bg::before {
+            content: "";
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background-image: 
+                radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px),
+                radial-gradient(white, rgba(255,255,255,.1) 1px, transparent 30px);
+            background-size: 500px 500px, 300px 300px;
+            animation: bgRotate 240s linear infinite;
+            opacity: 0.4;
+        }
+        @keyframes bgRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Спецэффект искажения фона для Черной дыры */
+        body.bh-active .space-bg {
+            filter: blur(8px) contrast(1.5);
+            transform: scale(1.2) rotate(15deg);
+        }
+        body.star-active .space-bg {
+            filter: blur(10px) brightness(0.3);
+        }
+
+        /* МЕНЮ ВЫБОРА */
+        .menu-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: transform 1.5s cubic-bezier(0.25, 1, 0.3, 1), opacity 1.2s ease;
+            padding: 0 40px;
+        }
+        .menu-screen.hidden {
+            opacity: 0;
+            transform: scale(2.8);
+            pointer-events: none;
+        }
+        .menu-title {
+            font-size: 13px;
+            letter-spacing: 7px;
+            margin-bottom: 60px;
+            text-transform: uppercase;
+            color: #00ffcc;
+            text-shadow: 0 0 20px rgba(0, 255, 204, 0.4);
+            font-weight: 300;
+        }
+        .planets-row { display: flex; gap: 30px; justify-content: center; }
+        .menu-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; width: 150px; }
+        .menu-orbit {
+            width: 155px !important; height: 155px !important;
+            border: 1px dashed rgba(0, 255, 204, 0.15); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            transition: border-color 0.4s, transform 0.6s ease;
+        }
+        .menu-circle {
+            width: 110px !important; height: 110px !important; border-radius: 50%;
+            background-size: 200% 100%; transition: transform 0.4s cubic-bezier(0.25, 1, 0.3, 1);
+        }
+        
+        .btn-neutron { background-image: url('mercury.jfif'); box-shadow: 0 0 20px rgba(0,255,255,0.5); filter: hue-rotate(60deg) saturate(2); }
+        .btn-redgiant { background-image: url('sun.jfif'); box-shadow: 0 0 25px #ff3300; }
+        .btn-white-dwarf { background-image: url('venus.jpg'); box-shadow: 0 0 20px #ffffff; filter: grayscale(1) brightness(1.3); }
+        .btn-blackhole { background-image: url('mars.jpg'); box-shadow: 0 0 30px rgba(140,0,255,0.4); filter: grayscale(1) brightness(0.05); }
+
+        .menu-item:hover .menu-orbit { border-color: #00ffcc; transform: rotate(45deg); }
+        .menu-item:hover .menu-circle { transform: scale(1.15); }
+        .menu-name { margin-top: 15px; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #475569; transition: color 0.3s; font-weight: bold; }
+        .menu-item:hover .menu-name { color: #00ffcc; }
+
+        /* ЭКРАН ПРОСМОТРА */
+        .view-screen {
+            position: absolute;
+            width: 100%; height: 100%; opacity: 0; pointer-events: none;
+            transition: opacity 0.8s ease-in-out; z-index: 5;
+        }
+        .view-screen.active { opacity: 1; pointer-events: auto; }
+        .back-btn { text-transform: uppercase; font-size: 11px; letter-spacing: 3px; cursor: pointer; transition: color 0.3s; }
+        .back-btn:hover { color: #00ffcc; }
+
+        /* Контейнер 3D-сферы */
+        .planet-showcase {
+            position: absolute;
+            width: 530px; height: 530px; left: 50%; top: 50%;
+            transform: translate(-50%, -50%) scale(0.15);
+            transition: left 1.6s cubic-bezier(0.25, 1, 0.3, 1), transform 1.6s cubic-bezier(0.25, 1, 0.3, 1);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .view-screen.active .planet-showcase { left: 33%; transform: translate(-50%, -50%) scale(1); }
+        
+        .main-sphere {
+            width: 100%; height: 100%; border-radius: 50%;
+            background-size: 200% 100%;
+            animation: spinPlanet 40s linear infinite;
+            position: relative; z-index: 4;
+            transition: box-shadow 1s ease;
+        }
+        @keyframes spinPlanet { from { background-position: 0% 0%; } to { background-position: -200% 0%; } }
+
+        /* СТУПЕНЧАТЫЕ СТИЛИ СВЕЧЕНИЯ И ЛУЧЕЙ ДЛЯ ЗВЕЗД */
+        .glow-neutron { box-shadow: inset -40px -40px 80px #000, 0 0 60px rgba(0, 255, 255, 0.8); animation: pulseGlowNeutron 3s ease-in-out infinite alternate !important; }
+        .glow-redgiant { box-shadow: inset -60px -60px 100px #000, 0 0 80px rgba(255, 50, 0, 0.7); animation: pulseGlowRed 4s ease-in-out infinite alternate !important; }
+        .glow-whitedwarf { box-shadow: inset -30px -30px 60px #000, 0 0 50px rgba(255, 255, 255, 0.9); }
+        .glow-blackhole { box-shadow: inset 0 0 40px #000, 0 0 90px rgba(255, 100, 0, 0.85); background: #000000 !important; }
+
+        @keyframes pulseGlowNeutron { from { filter: drop-shadow(0 0 20px #00ffff); } to { filter: drop-shadow(0 0 50px #00ffff); } }
+        @keyframes pulseGlowRed { from { transform: scale(1); } to { transform: scale(1.03); } }
+
+        /* Био-лучи пульсара (Нейтронная звезда) */
+        .pulsar-beams {
+            position: absolute; width: 200%; height: 40px;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.7), transparent);
+            filter: blur(10px); transform: rotate(70deg); opacity: 0; z-index: 3;
+            transition: opacity 0.5s; pointer-events: none;
+        }
+        body.neutron-selected .pulsar-beams { opacity: 1; animation: spinBeam 4s linear infinite; }
+        @keyframes spinBeam { from { transform: rotate(65deg) scaleY(1); } to { transform: rotate(75deg) scaleY(1.3); } }
+
+        /* Аккреционный диск Черной дыры */
+        .accretion-disk {
+            position: absolute; width: 160%; height: 160%;
+            border-radius: 50%; background: radial-gradient(circle, transparent 35%, rgba(255,100,0,0.8) 45%, rgba(140,0,255,0.4) 60%, transparent 70%);
+            transform: rotateX(70deg) rotateZ(0deg); filter: blur(4px); opacity: 0; z-index: 2;
+            transition: opacity 0.8s; pointer-events: none;
+        }
+        body.blackhole-selected .accretion-disk { opacity: 1; animation: rotateDisk 15s linear infinite; }
+        @keyframes rotateDisk { from { transform: rotateX(70deg) rotateZ(0deg); } to { transform: rotateX(70deg) rotateZ(360deg); } }
+
+        /* ИНФО-ПАНЕЛЬ СЛЕВА */
+        .info-panel {
+            position: absolute; right: 5% !important; top: 15% !important;
+            max-width: 440px !important; height: 70vh !important;
+            overflow-y: auto !important; padding-right: 15px !important;
+            opacity: 0; transform: translateX(70px);
+            transition: opacity 1s cubic-bezier(0.25, 1, 0.3, 1) 0.6s, transform 1s cubic-bezier(0.25, 1, 0.3, 1) 0.6s;
+            z-index: 99 !important; background: transparent !important;
+        }
+        .view-screen.active .info-panel { opacity: 1 !important; transform: translateX(0) !important; }
+        .info-panel::-webkit-scrollbar { width: 4px; }
+        .info-panel::-webkit-scrollbar-thumb { background: rgba(177, 0, 255, 0.3); border-radius: 2px; }
+        
+        .sys-online { color: #b100ff; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 8px; }
+        .info-panel h1 { font-size: 32px; letter-spacing: 1px; text-transform: uppercase; margin: 0 0 20px 0; font-weight: 600; color: #ffffff !important; }
+        .info-panel p { color: #94a3b8 !important; line-height: 1.7; font-size: 15px; margin-bottom: 35px; font-weight: 300; }
+        
+        .stat-box { border-left: 3px solid #b100ff; padding-left: 15px; margin: 22px 0; background: linear-gradient(90deg, rgba(177, 0, 255, 0.03), transparent); }
+        .stat-label { font-size: 10px; text-transform: uppercase; color: #475569; letter-spacing: 1.5px; margin-bottom: 3px; }
+        .stat-value { font-size: 20px; font-weight: bold; color: #ffffff !important; }
+    </style>
+</head>
+<body>
+
+    <div class="space-bg"></div>
+
+    <!-- ЭКРАН 1: ГЛАВНОЕ МЕНЮ ЗВЕЗД -->
+    <div class="menu-screen" id="menuScreen">
+        <div class="menu-title">КЛАССИФИКАЦИЯ И ЭВОЛЮЦИЯ ЗВЕЗД</div>
+        <div class="planets-row">
+            <div class="menu-item" onclick="openPlanet('neutron')">
+                <div class="menu-orbit"><div class="menu-circle btn-neutron"></div></div>
+                <div class="menu-name">Нейтронная звезда</div>
+            </div>
+            <div class="menu-item" onclick="openPlanet('redgiant')">
+                <div class="menu-orbit"><div class="menu-circle btn-redgiant"></div></div>
+                <div class="menu-name">Красный гигант</div>
+            </div>
+            <div class="menu-item" onclick="openPlanet('whitedwarf')">
+                <div class="menu-orbit"><div class="menu-circle btn-white-dwarf"></div></div>
+                <div class="menu-name">Белый карлик</div>
+            </div>
+            <div class="menu-item" onclick="openPlanet('blackhole')">
+                <div class="menu-orbit"><div class="menu-circle btn-blackhole"></div></div>
+                <div class="menu-name">Черная дыра</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ЭКРАН 2: ПРОСМОТР ОБЪЕКТА -->
+    <div class="view-screen" id="viewScreen">
+        <div class="back-btn" onclick="closePlanet()" style="position: absolute; top: 40px; left: 40px;">◀ К КАТАЛОГУ ЗВЕЗД</div>
+        <div class="back-btn" onclick="window.location.href='index.html'" style="position: absolute; top: 40px; left: 210px; color: #b100ff;">❖ В ГЛАВНОЕ МЕНЮ</div>
+        
+        <div class="planet-showcase">
+            <!-- Элементы спецэффектов вокруг сферы -->
+            <div class="pulsar-beams"></div>
+            <div class="accretion-disk"></div>
+            <div class="main-sphere" id="planetSphere"></div>
+        </div>
+
+        <div class="info-panel">
+            <div class="sys-online"></div>
+            <h1 id="pName">НАЗВАНИЕ</h1>
+            <p id="pDesc">Описание.</p>
+            
+            <div class="stat-box">
+                <div class="stat-label">Классификация объекта</div>
+                <div class="stat-value" id="pType">-</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Плотность вещества (г/см³)</div>
+                <!-- Цифровые счетчики параметров -->
+                <div class="stat-value" id="pDensity">0</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const data = {
+            neutron: {
+                name: "Нейтронная звезда — Пульсар",
+                desc: "Нейтронная звезда — это невероятно плотный остаток массивной звезды, сколлапсировавшей под действием собственной гравитации после вспышки сверхновой. Имея радиус всего в 10–15 километров, этот объект превосходит по массе наше Солнце. Одна чайная ложка такого вещества весила бы на Земле около 6 миллиардов тонн. Многие нейтронные звезды бешено вращаются, испуская мощные пучки жесткого радиоизлучения из полюсов.",
+                type: "Сверхплотный остаток звезды (Коллапсар)",
+                density: 100000000, 
+                suffix: " т/см³",
+                img: "mercury.jfif",
+                glow: "glow-neutron",
+                bodyClass: "neutron-selected"
+            },
+            redgiant: {
+                name: "Красный гигант — Стадия расширения",
+                desc: "Красные гиганты — это огромные умирающие звезды промежуточной массы. Когда в недрах обычного светила (такого как Солнце) заканчиваются запасы водородного топлива, его ядро начинает быстро сжиматься под действием гравитации, сильно разогревая внешние оболочки. В результате звезда раздувается в сотни раз, а её внешние слои остывают до багрового оттенка. Светимость такого гиганта возрастает в тысячи раз.",
+                type: "Поздняя стадия эволюции звезд",
+                density: 1500, 
+                suffix: " х Светимостей Солнца",
+                img: "sun.jfif",
+                glow: "glow-redgiant",
+                bodyClass: "redgiant-selected"
+            },
+            whitedwarf: {
+                name: "Белый карлик — Финал эволюции",
+                desc: "Белый карлик — это компактная, остывающая звездная субстанция, лишенная собственных источников термоядерной энергии. Это финальная точка жизни звезд небольшой массы, прошедших стадию Красного гиганта и полностью сбросивших свои внешние оболочки. По размерам Белый карлик сопоставим с нашей Землей, однако его масса равна солнечной.",
+                type: "Вырожденный электронный остаток",
+                density: 1000000, 
+                suffix: " г/см³",
+                img: "venus.jpg",
+                glow: "glow-whitedwarf",
+                bodyClass: "whitedwarf-selected"
+            },
+            blackhole: {
+                name: "Черная дыра — Гравитационный предел",
+                desc: "Черная дыра — это область пространства-времени с настолько колоссальным гравитационным притяжением, что покинуть её не могут даже кванты самого света. Граница этой области называется Горизонтом событий. Она образуется в результате финального гравитационного коллапса ядер сверхмассивных звезд. Световые лучи искривляются вокруг неё, образуя аккреционный диск.",
+                type: "Гравитационный сингулярный объект",
+                density: 999999999, 
+                suffix: " (Критическая сингулярность)",
+                img: "mars.jpg",
+                glow: "glow-blackhole",
+                bodyClass: "blackhole-selected"
+            }
+        };
+
+        function animateCounter(elementId, targetValue, suffix) {
+            const el = document.getElementById(elementId);
+            let startValue = 0;
+            const step = Math.ceil(targetValue / 40);
+            
+            clearInterval(el.counterInterval);
+            el.counterInterval = setInterval(() => {
+                startValue += step;
+                if (startValue >= targetValue) {
+                    clearInterval(el.counterInterval);
+                    el.innerText = targetValue.toLocaleString('ru-RU') + suffix;
+                } else {
+                    el.innerText = startValue.toLocaleString('ru-RU') + suffix;
+                }
+            }, 25);
+        }
+
+        function openPlanet(id) {
+            const sphere = document.getElementById('planetSphere');
+            if (!data[id]) return;
+            
+            // Очищаем старые стили свечения и классов body
+            sphere.className = "main-sphere";
+            document.body.className = "star-active";
+            
+            // Подгружаем текстуру и активируем спецэффекты
+            sphere.style.backgroundImage = `url('${data[id].img}')`;
+            sphere.classList.add(data[id].glow);
+            document.body.classList.add(data[id].bodyClass);
+            
+            if (id === 'blackhole') {
+                document.body.classList.add('bh-active');
+            }
+
+            document.getElementById('pName').innerHTML = data[id].name;
+            document.getElementById('pDesc').innerHTML = data[id].desc;
+            document.getElementById('pType').innerText = data[id].type;
+
+            // Запускаем счетчик плотности космического объекта
+            animateCounter('pDensity', data[id].density, data[id].suffix);
+
+            document.getElementById('menuScreen').classList.add('hidden');
+            document.getElementById('viewScreen').classList.add('active');
+        }
+
+        function closePlanet() {
+            document.body.className = "";
+            document.getElementById('menuScreen').classList.remove('hidden');
+            document.getElementById('viewScreen').classList.remove('active');
+        }
+    </script>
+</body>
+</html>
